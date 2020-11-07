@@ -1,13 +1,13 @@
 <template>
     <div class="main-page">
         <div class="top-bar">
-            <p class="music-name">{{songInfo[0].name}}</p>
-            <p class="author">- {{songInfo[0].artistsName}} -</p>
+            <p class="music-name">{{songInfo[this.idx].name}}</p>
+            <p class="author">- {{songInfo[this.idx].artistsName}} -</p>
         </div>
-        <div class="background-filter" :style='`background-image:url(${songInfo[0].cover})`'></div>
-        <swiper :cover="songInfo[0]" :is-play="isPlay"></swiper>
+        <div class="background-filter" :style='`background-image:url(${songInfo[this.idx].cover})`'></div>
+        <swiper :cover="songInfo[this.idx]" :is-play="isPlay"></swiper>
         <div class="music">
-            <audio src="https://music.163.com/song/media/outer/url?id=1466598056.mp3"
+            <audio :src="`${songInfo[this.idx].url}`"
                    type="audio/mp3"
                    ref="audio"
                    @canplay="updateTime"
@@ -16,7 +16,7 @@
                 <div class="start-time time">{{startTime|dateTime}}</div>
                 <div class="progress-bar">
                     <div class="load-bar"></div>
-                    <div class="point-bar"></div>
+                    <div class="point-bar" ref="yuandian"></div>
                 </div>
                 <div class="end-time time">{{endTime|dateTime}}</div>
             </div>
@@ -27,7 +27,7 @@
                 <div class="audio-style" @click="onPlay">
                     <span :class="[isPlay?'pause-icon':'player-icon']" class="icon" ></span>
                 </div>
-                <div class="audio-style" >
+                <div class="audio-style" @click="onNext">
                     <span class="icon right-icon"></span>
                 </div>
             </div>
@@ -53,41 +53,93 @@
                     index: 7,
                     name: "Lemon",
                     url:"https://music.163.com/song/media/outer/url?id=1466598056.mp3"
+                },{
+                    artistsName:'米津玄師&daoko',
+                    cover:'https://p2.music.126.net/ZUCE_1Tl_hkbtamKmSNXEg==/109951163009282836.jpg',
+                    name:'打上花火',
+                    url:'https://win-web-nf01-sycdn.kuwo.cn/857364c6269d1265ec40cf196c494f39/5fa6e342/resource/n1/55/56/394740245.mp3'
                 }],
                 isPlay:false,
-                endTime:0,
+                endTime:'',
                 startTime:0,
-                overTime:null
+                overTime:null,
+                idx:0
+
             }
         },
+       mounted(){
+            //监听audio是否结束
+            this.$refs.audio.addEventListener('ended',()=>{
+                this.startTime=0
+                clearInterval(this.overTime)
+                this.isPlay=false
+                this.$refs.yuandian.style.left=0+'%'
+            })
+        },
         methods:{
-            //播放暂停
+            //播放&暂停
             onPlay(){
                 if(!this.isPlay){
-                    this.$refs.audio.play()
-                    this.isPlay=!this.isPlay
-                    this.time()
+                    this.$nextTick(() => {
+                        this.$refs.audio.play()
+                        this.isPlay=!this.isPlay
+                        this.time()
+                    })
+
                 }else {
-                    this.$refs.audio.pause()
-                    clearInterval(this.overTime)
-                    this.isPlay=!this.isPlay
+                    this.$nextTick(() => {
+                        this.$refs.audio.pause()
+                        clearInterval(this.overTime)
+                        this.isPlay=!this.isPlay
+                    })
+
                 }
             },
             //获取总时长
             updateTime(){
-                this.endTime=this.$refs.audio.duration
+                this.$nextTick(() => {
+                    this.endTime=this.$refs.audio.duration
+                })
+            },
+            //定时器
+            time(){
+                this.$nextTick(() => {
+                    this.overTime=setInterval(()=>{
+                        this.startTime=this.$refs.audio.currentTime
+                        this.point()
+                        if(this.startTime>=this.endTime){
+                            clearInterval(this.overTime)
+                        }
+                    },1000)
+                })
+            },
+            //进度条
+            point(){
+                //得到进度条剩余百分比
+                let leftWidth=(parseInt(this.startTime)/parseInt(this.endTime))*100;
+                //进度条圆点
+                this.$refs.yuandian.style.left=`${leftWidth}%`
+
             },
 
-            time(){
-             this.overTime=setInterval(()=>{
-                    this.startTime+=1;
-                    if(this.startTime>=this.endTime){
-                        clearInterval(this.overTime)
-                    }
-                },1000)
+            //下一曲，有BUG待修复。
+            onNext(){
+                if(this.idx===this.songInfo.length-1){
+                    return
+                }
+                this.idx+=1;
+                this.$nextTick(()=>{
+                    this.$refs.audio.load();
+                    this.$refs.audio.autoplay=true
+                })
+                this.isPlay=true
+                this.startTime=0;
+                clearInterval(this.overTime)
+                this.time()
             }
         },
         filters:{
+            //歌曲时间转换
             dateTime(val){
                 let hour=Math.floor(val/3600)+'';
                 let min=Math.floor(val/60)%60+'';
@@ -139,7 +191,7 @@
         }
         .music{
             position: fixed;
-            bottom: 0.3rem;
+            bottom: 0.5rem;
             width: 100%;
             height: 1rem;
             .music-time{
@@ -155,9 +207,25 @@
                 }
                 .progress-bar{
                     width: 3.7rem;
-                    height: 0.2rem;
+                    height: 0.1rem;
                     background: #f3e7e7;
                     border-radius: 4px;
+                    position: relative;
+                    .load-bar{
+
+                    }
+                    .point-bar{
+                        width: 0.33rem;
+                        height: 0.33rem;
+                        position: absolute;
+                        left: 0;
+                        top:50%;
+                        z-index: 999;
+                        background: rgba(201, 191, 191, 0.99);
+                        border-radius: 50%;
+                        transform: translateY(-50%);
+                    }
+
                 }
             }
             .music-btn{

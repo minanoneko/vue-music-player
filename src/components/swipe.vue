@@ -1,6 +1,6 @@
 <template>
     <div>
-        <swiper :options="swiperOption" ref="mySwiper">
+        <swiper  ref="mySwiper">
             <swiper-slide>
                 <div class="disc-cover" :class="{'play-ani':isPlay}">
                     <div class="disc">
@@ -28,9 +28,7 @@
         },
         data(){
             return{
-                swiperOptions:{
-                    autoplay:false,
-                },
+
             }
         },
         computed:{
@@ -39,9 +37,6 @@
         methods:{
 
         },
-        mounted(){
-
-        }
 
     }
 </script>
