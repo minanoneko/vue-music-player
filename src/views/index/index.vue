@@ -17,6 +17,7 @@
                 <div class="progress-bar">
                     <div class="load-bar"></div>
                     <div class="point-bar" ref="yuandian"></div>
+                    <div class="cur" ref="cur"></div>
                 </div>
                 <div class="end-time time">{{endTime|dateTime}}</div>
             </div>
@@ -57,7 +58,7 @@
                     artistsName:'米津玄師&daoko',
                     cover:'https://p2.music.126.net/ZUCE_1Tl_hkbtamKmSNXEg==/109951163009282836.jpg',
                     name:'打上花火',
-                    url:'https://win-web-nf01-sycdn.kuwo.cn/857364c6269d1265ec40cf196c494f39/5fa6e342/resource/n1/55/56/394740245.mp3'
+                    url:'https://win-web-nf01-sycdn.kuwo.cn/bfc22baaa144c15cd15af536a810e91e/5fa94705/resource/n1/55/56/394740245.mp3'
                 }],
                 isPlay:false,
                 endTime:'',
@@ -73,7 +74,7 @@
                 this.startTime=0
                 clearInterval(this.overTime)
                 this.isPlay=false
-                this.$refs.yuandian.style.left=0+'%'
+               this.reset()
             })
         },
         methods:{
@@ -119,7 +120,8 @@
                 let leftWidth=(parseInt(this.startTime)/parseInt(this.endTime))*100;
                 //进度条圆点
                 this.$refs.yuandian.style.left=`${leftWidth}%`
-
+                //
+                this.$refs.cur.style.width=`${leftWidth}%`
             },
 
             //下一曲，有BUG待修复。
@@ -127,17 +129,24 @@
                 if(this.idx===this.songInfo.length-1){
                     return
                 }
+                clearInterval(this.overTime)
                 this.idx+=1;
-                this.$nextTick(()=>{
-                    this.$refs.audio.load();
-                    this.$refs.audio.autoplay=true
-                })
+                this.$refs.audio.load();
+                this.$refs.audio.autoplay=true
+                this.reset()
                 this.isPlay=true
                 this.startTime=0;
-                clearInterval(this.overTime)
                 this.time()
-            }
+            },
+
+            //重置进度条
+            reset(){
+                this.$refs.yuandian.style.left=0+'%';
+                this.$refs.cur.style.wdith=0+'%'
+            },
         },
+
+
         filters:{
             //歌曲时间转换
             dateTime(val){
@@ -158,7 +167,6 @@
 <style lang="scss" scoped>
     .main-page{
         width: 100%;
-        height: 100vh;
         position: relative;
         .top-bar{
             width: 100%;
@@ -224,6 +232,16 @@
                         background: rgba(201, 191, 191, 0.99);
                         border-radius: 50%;
                         transform: translateY(-50%);
+
+                    }
+                    .cur{
+                        position: absolute;
+                        height: 0.1rem;
+                        left:0;
+                        top:0;
+                        background: #d90e0e;
+                        z-index: 998;
+                        border-radius:4px 0 0 4px;
                     }
 
                 }
@@ -256,7 +274,6 @@
                     }
                 }
             }
-
 
         }
     }
