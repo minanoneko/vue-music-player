@@ -4,5 +4,5 @@ export function resetRem(){
 
   let htmlDom=document.getElementsByTagName("html")[0];
 
-  htmlDom.style.fontSize=htmlWidth/750*100+'px';
+  htmlDom.style.fontSize=htmlWidth/7.5+'px';
 }

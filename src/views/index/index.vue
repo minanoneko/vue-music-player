@@ -15,14 +15,14 @@
             <div class="music-time">
                 <div class="start-time time">{{startTime|dateTime}}</div>
                 <div class="progress-bar">
-                    <div class="load-bar"></div>
+                    <div class="load-bar" ref="load"></div>
                     <div class="point-bar" ref="yuandian"></div>
                     <div class="cur" ref="cur"></div>
                 </div>
                 <div class="end-time time">{{endTime|dateTime}}</div>
             </div>
             <div class="music-btn">
-                <div class="audio-style" >
+                <div class="audio-style" @click="onPerv">
                     <span class="left-icon icon"></span>
                 </div>
                 <div class="audio-style" @click="onPlay">
@@ -55,17 +55,16 @@
                     name: "Lemon",
                     url:"https://music.163.com/song/media/outer/url?id=1466598056.mp3"
                 },{
-                    artistsName:'米津玄師&daoko',
-                    cover:'https://p2.music.126.net/ZUCE_1Tl_hkbtamKmSNXEg==/109951163009282836.jpg',
-                    name:'打上花火',
-                    url:'https://win-web-nf01-sycdn.kuwo.cn/bfc22baaa144c15cd15af536a810e91e/5fa94705/resource/n1/55/56/394740245.mp3'
+                    artistsName:'LiSA',
+                    cover:'https://tse4-mm.cn.bing.net/th/id/OIP.po03cZ8otFBIi_0BCdSEpAHaHW?pid=Api&rs=1',
+                    name:'炎',
+                    url:'https://webfs.yun.kugou.com/202011092302/a9bdc4f39d694eda71938bfa5f23c995/G221/M0A/11/0F/HQ4DAF9xjx-AZv6jAEMDCpooYTQ954.mp3'
                 }],
                 isPlay:false,
                 endTime:'',
                 startTime:0,
                 overTime:null,
                 idx:0
-
             }
         },
        mounted(){
@@ -74,8 +73,17 @@
                 this.startTime=0
                 clearInterval(this.overTime)
                 this.isPlay=false
-               this.reset()
+                this.$refs.yuandian.style.left=0+'%'
+                this.$refs.cur.style.width=0+'%'
+                if(this.idx===this.songInfo.length-1){
+                    this.$refs.audio.autoPlay=false
+                    this.reset()
+                    this.onPlay()
+                }else {
+                   this.onNext()
+                }
             })
+
         },
         methods:{
             //播放&暂停
@@ -86,7 +94,6 @@
                         this.isPlay=!this.isPlay
                         this.time()
                     })
-
                 }else {
                     this.$nextTick(() => {
                         this.$refs.audio.pause()
@@ -102,10 +109,13 @@
                     this.endTime=this.$refs.audio.duration
                 })
             },
+
             //定时器
             time(){
                 this.$nextTick(() => {
                     this.overTime=setInterval(()=>{
+                        // let loadTime=this.$refs.audio.buffered
+                        // this.$refs.load.style.width=`${Math.floor(loadTime.end(loadTime.length-1)/parseInt(this.endTime)*100)}%`
                         this.startTime=this.$refs.audio.currentTime
                         this.point()
                         if(this.startTime>=this.endTime){
@@ -120,29 +130,38 @@
                 let leftWidth=(parseInt(this.startTime)/parseInt(this.endTime))*100;
                 //进度条圆点
                 this.$refs.yuandian.style.left=`${leftWidth}%`
-                //
+                //进度条填充
                 this.$refs.cur.style.width=`${leftWidth}%`
             },
 
-            //下一曲，有BUG待修复。
+            //下一曲
             onNext(){
                 if(this.idx===this.songInfo.length-1){
                     return
                 }
-                clearInterval(this.overTime)
                 this.idx+=1;
+                this.reset()
+            },
+            //上一曲
+            onPerv(){
+                if(this.idx===0){
+                    return
+                }
+                this.idx-=1;
+                this.reset()
+
+            },
+
+            //重置
+            reset(){
+                clearInterval(this.overTime)
+                this.$refs.yuandian.style.left=0+'%';
+                this.$refs.cur.style.width=0+'%'
                 this.$refs.audio.load();
                 this.$refs.audio.autoplay=true
-                this.reset()
                 this.isPlay=true
                 this.startTime=0;
                 this.time()
-            },
-
-            //重置进度条
-            reset(){
-                this.$refs.yuandian.style.left=0+'%';
-                this.$refs.cur.style.wdith=0+'%'
             },
         },
 
@@ -175,11 +194,12 @@
             color: #ffff;
             line-height: 0.6rem;
             .author{
-                font-size: 0.3rem;
+                margin-top: 0.1rem;
+                font-size: 0.4rem;
             }
             .music-name{
                 font-weight: 500;
-                font-size: 0.5rem;
+                font-size: 0.6rem;
             }
         }
         .background-filter{
@@ -191,7 +211,7 @@
             width: 100%;
             height: 100vh;
             background-position: 50%;
-            filter: blur(0.15rem);
+            filter: blur(0.2rem);
             opacity: 0.7;
             overflow: hidden;
             box-sizing: border-box;
@@ -199,57 +219,65 @@
         }
         .music{
             position: fixed;
-            bottom: 0.5rem;
+            bottom:1em;
             width: 100%;
-            height: 1rem;
             .music-time{
                 width: 100%;
                 display: flex;
-                justify-content: space-around;
-                position: absolute;
-                bottom: 2rem;
                 align-items: center;
+                box-sizing: border-box;
+                justify-content:space-around;
+                overflow: hidden;
+                padding-bottom: 0.7rem;
+                padding-right: 0.2rem;
                 .time{
                     font-size: 0.32rem;
                     color: #f8f8f8;
                 }
                 .progress-bar{
                     width: 3.7rem;
-                    height: 0.1rem;
-                    background: #f3e7e7;
+                    height: 0.08rem;
+                    background: #f8f7f7;
                     border-radius: 4px;
                     position: relative;
+                    box-sizing: border-box;
                     .load-bar{
-
+                        position: absolute;
+                        top:0;
+                        left: 0;
+                        height: 0.08rem;
+                        z-index: 997;
+                        border-radius: 0 4px 4px 0;
+                        background: #585555;
                     }
                     .point-bar{
-                        width: 0.33rem;
-                        height: 0.33rem;
+                        width: 0.28rem;
+                        height: 0.28rem;
                         position: absolute;
                         left: 0;
                         top:50%;
                         z-index: 999;
-                        background: rgba(201, 191, 191, 0.99);
+                        background: #ffff;
                         border-radius: 50%;
                         transform: translateY(-50%);
 
                     }
                     .cur{
                         position: absolute;
-                        height: 0.1rem;
+                        height: 0.08rem;
                         left:0;
                         top:0;
-                        background: #d90e0e;
+                        background: #e02d2d;
                         z-index: 998;
-                        border-radius:4px 0 0 4px;
+                        box-sizing: border-box;
                     }
-
                 }
             }
             .music-btn{
                 display: flex;
                 justify-content: space-around;
                 align-items: center;
+                padding-right: 0.2rem;
                 .audio-style{
                     width: 0.8rem;
                     height: 0.8rem;
