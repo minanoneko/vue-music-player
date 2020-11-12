@@ -1,22 +1,26 @@
 <template>
-    <div class="main-page">
+    <div class="main-page" ref="mainPage">
         <div class="top-bar">
             <p class="music-name">{{songInfo[this.idx].name}}</p>
             <p class="author">- {{songInfo[this.idx].artistsName}} -</p>
         </div>
         <div class="background-filter" :style='`background-image:url(${songInfo[this.idx].cover})`'></div>
-        <swiper :cover="songInfo[this.idx]" :is-play="isPlay"></swiper>
+        <swiper :cover="songInfo[this.idx]" ref="getRotate"></swiper>
         <div class="music">
             <audio :src="`${songInfo[this.idx].url}`"
                    type="audio/mp3"
                    ref="audio"
-                   @canplay="updateTime"
+
             ></audio>
             <div class="music-time">
-                <div class="start-time time">{{startTime|dateTime}}</div>
-                <div class="progress-bar">
+                <div class="start-time time">{{nowTime|dateTime}}</div>
+                <div class="progress-bar" ref="track" @click="HandleProgressClick($event)">
                     <div class="load-bar" ref="load"></div>
-                    <div class="point-bar" ref="yuandian"></div>
+                    <div class="point-bar" ref="yuandian"
+                         @touchstart.stop.prevent="touchstart"
+                         @touchmove.stop.prevent="touchmove"
+                         @touchend.stop.prevent="touchend"
+                    ></div>
                     <div class="cur" ref="cur"></div>
                 </div>
                 <div class="end-time time">{{endTime|dateTime}}</div>
@@ -58,32 +62,37 @@
                     artistsName:'LiSA',
                     cover:'https://tse4-mm.cn.bing.net/th/id/OIP.po03cZ8otFBIi_0BCdSEpAHaHW?pid=Api&rs=1',
                     name:'炎',
-                    url:'https://webfs.yun.kugou.com/202011092302/a9bdc4f39d694eda71938bfa5f23c995/G221/M0A/11/0F/HQ4DAF9xjx-AZv6jAEMDCpooYTQ954.mp3'
+                    url:'https://gd-sycdn.kuwo.cn/5d27d2bf01fb611fae44657a98d0d659/5faad4ac/resource/n3/96/86/1735096166.mp3'
                 }],
                 isPlay:false,
                 endTime:'',
-                startTime:0,
+                nowTime:0,
                 overTime:null,
-                idx:0
+                idx:0,
+                startXfirst:true,
+                startX:0
             }
         },
        mounted(){
             //监听audio是否结束
-            this.$refs.audio.addEventListener('ended',()=>{
-                this.startTime=0
+           this.$refs.audio.addEventListener('ended',()=>{
+                this.nowTime=0
                 clearInterval(this.overTime)
                 this.isPlay=false
                 this.$refs.yuandian.style.left=0+'%'
                 this.$refs.cur.style.width=0+'%'
+                this.$refs.getRotate.$refs.rotate.style.animationPlayState='paused'
                 if(this.idx===this.songInfo.length-1){
                     this.$refs.audio.autoPlay=false
-                    this.reset()
-                    this.onPlay()
                 }else {
                    this.onNext()
                 }
             })
 
+           //音频文件准备就绪时候得到总时长
+            this.$refs.audio.addEventListener('canplay',()=>{
+                this.endTime=this.$refs.audio.duration
+            })
         },
         methods:{
             //播放&暂停
@@ -93,22 +102,19 @@
                         this.$refs.audio.play()
                         this.isPlay=!this.isPlay
                         this.time()
+                        this.$refs.getRotate.$refs.rotate.style.animationPlayState='running' //控制组件动画
                     })
                 }else {
                     this.$nextTick(() => {
                         this.$refs.audio.pause()
                         clearInterval(this.overTime)
                         this.isPlay=!this.isPlay
+                        this.$refs.getRotate.$refs.rotate.style.animationPlayState='paused'
                     })
 
                 }
             },
-            //获取总时长
-            updateTime(){
-                this.$nextTick(() => {
-                    this.endTime=this.$refs.audio.duration
-                })
-            },
+
 
             //定时器
             time(){
@@ -116,18 +122,19 @@
                     this.overTime=setInterval(()=>{
                         // let loadTime=this.$refs.audio.buffered
                         // this.$refs.load.style.width=`${Math.floor(loadTime.end(loadTime.length-1)/parseInt(this.endTime)*100)}%`
-                        this.startTime=this.$refs.audio.currentTime
+                        this.nowTime=this.$refs.audio.currentTime
                         this.point()
-                        if(this.startTime>=this.endTime){
+                        if(this.nowTime>=this.endTime){
                             clearInterval(this.overTime)
                         }
-                    },1000)
+                    },100)
                 })
             },
+
             //进度条
             point(){
-                //得到进度条剩余百分比
-                let leftWidth=(parseInt(this.startTime)/parseInt(this.endTime))*100;
+                //得到经过时长百分比
+                let leftWidth=(parseInt(this.nowTime)/parseInt(this.endTime))*100;
                 //进度条圆点
                 this.$refs.yuandian.style.left=`${leftWidth}%`
                 //进度条填充
@@ -139,6 +146,7 @@
                 if(this.idx===this.songInfo.length-1){
                     return
                 }
+                this.$refs.getRotate.$refs.rotate.style.animationPlayState='running'
                 this.idx+=1;
                 this.reset()
             },
@@ -147,9 +155,9 @@
                 if(this.idx===0){
                     return
                 }
+                this.$refs.getRotate.$refs.rotate.style.animationPlayState='running'
                 this.idx-=1;
                 this.reset()
-
             },
 
             //重置
@@ -160,9 +168,43 @@
                 this.$refs.audio.load();
                 this.$refs.audio.autoplay=true
                 this.isPlay=true
-                this.startTime=0;
+                this.nowTime=0;
                 this.time()
             },
+
+            //圆点控制进度条
+            touchstart(e){
+                let progressWidth=this.$refs.track.offsetWidth //进度条总长
+                let allWidth=this.$refs.mainPage.offsetWidth //页面总长
+                let half=(allWidth-progressWidth)/2
+                console.log("开始", progressWidth, allWidth, half)
+                if(this.startXfirst){
+                    this.startX=half;
+                    this.startXfirst=false
+                }
+            },
+            touchmove(e){
+               let moveX=e.changedTouches[0].clientX-this.startX; //滑动中的坐标轴
+                let progressWidth=this.$refs.track.offsetWidth //进度条总长
+                let percent = (moveX / progressWidth).toFixed(2); //拖动百分比
+                if(percent>1){
+                    percent = 1
+                }
+            },
+            touchend(){
+
+            },
+
+            //点击进度条
+            HandleProgressClick(e){
+                if(!this.isPlay){
+                    this.onPlay()
+                }
+                let progressWidth=this.$refs.track.offsetWidth;
+                let clickX = e.offsetX; //当前点击的X坐标
+                let time=(clickX / progressWidth).toFixed(2);//当前进度百分比
+                this.$refs.audio.currentTime=this.$refs.audio.duration*time;//总时长*当前进度百分比=已播放时长
+            }
         },
 
 
@@ -270,6 +312,7 @@
                         background: #e02d2d;
                         z-index: 998;
                         box-sizing: border-box;
+                        border-radius: 4px 0 0 4px;
                     }
                 }
             }
