@@ -18,8 +18,6 @@
                     <div class="load-bar" ref="load"></div>
                     <div class="point-bar" ref="yuandian"
                          @touchstart.stop.prevent="touchstart"
-                         @touchmove.stop.prevent="touchmove"
-                         @touchend.stop.prevent="touchend"
                     ></div>
                     <div class="cur" ref="cur"></div>
                 </div>
@@ -69,8 +67,8 @@
                 nowTime:0,
                 overTime:null,
                 idx:0,
-                startXfirst:true,
-                startX:0
+                pageX:null
+
             }
         },
        mounted(){
@@ -135,7 +133,7 @@
             point(){
                 //得到经过时长百分比
                 let leftWidth=(parseInt(this.nowTime)/parseInt(this.endTime))*100;
-                //进度条圆点
+                //进度条圆点位移
                 this.$refs.yuandian.style.left=`${leftWidth}%`
                 //进度条填充
                 this.$refs.cur.style.width=`${leftWidth}%`
@@ -174,24 +172,40 @@
 
             //圆点控制进度条
             touchstart(e){
-                let progressWidth=this.$refs.track.offsetWidth //进度条总长
-                let allWidth=this.$refs.mainPage.offsetWidth //页面总长
-                let half=(allWidth-progressWidth)/2
-                console.log("开始", progressWidth, allWidth, half)
-                if(this.startXfirst){
-                    this.startX=half;
-                    this.startXfirst=false
+                clearInterval(this.overTime)
+                let round=this.$refs.yuandian;
+                let progressWidth=this.$refs.track.offsetWidth // 进度条宽度
+                let offsetWidth=round.offsetWidth; //圆点宽度
+                let justWidth=progressWidth-offsetWidth //进度条剩余宽度
+                let pageX=this.$refs.track.getBoundingClientRect().left //得到进度条离屏幕的宽度
+
+                round.ontouchmove=(e)=>{  //元素移动
+                    e.preventDefault(); //阻止元素默认行为
+                    let moveX=e.touches[0].pageX; //当前元素的X轴
+                    let leftX=((moveX-pageX)/justWidth.toFixed(2)) //得到当前进度条百分比
+                    this.nowTime=this.$refs.audio.duration*leftX  //赋值经过时间
+                    if((moveX-pageX)>=justWidth){              //判断是否超过进度条
+                        leftX=1
+                        this.nowTime=this.$refs.audio.duration
+                    }
+                    if((moveX-pageX)<=0){
+                        leftX=0
+                        this.nowTime=0
+                    }
+
+                    round.style.left=`${leftX*100}%`  //圆点移动
+                    this.$refs.cur.style.width=`${leftX*100}%` //填充条移动
+                    round.ontouchend=()=>{  //元素停止移动
+                        e.preventDefault()
+                        if(!this.isPlay){
+                            this.onPlay()
+                        }else {
+                            this.time()
+                        }
+                        this.$refs.audio.currentTime=this.$refs.audio.duration*leftX
+
+                    }
                 }
-            },
-            touchmove(e){
-               let moveX=e.changedTouches[0].clientX-this.startX; //滑动中的坐标轴
-                let progressWidth=this.$refs.track.offsetWidth //进度条总长
-                let percent = (moveX / progressWidth).toFixed(2); //拖动百分比
-                if(percent>1){
-                    percent = 1
-                }
-            },
-            touchend(){
 
             },
 
@@ -200,10 +214,10 @@
                 if(!this.isPlay){
                     this.onPlay()
                 }
-                let progressWidth=this.$refs.track.offsetWidth;
-                let clickX = e.offsetX; //当前点击的X坐标
-                let time=(clickX / progressWidth).toFixed(2);//当前进度百分比
-                this.$refs.audio.currentTime=this.$refs.audio.duration*time;//总时长*当前进度百分比=已播放时长
+                let progressWidth=this.$refs.track.offsetWidth; //进度条宽度
+                let clickX = e.offsetX;     //当前点击的位置相对于触发事件对象的X坐标
+                let time=(clickX / progressWidth).toFixed(2);   //当前进度
+                this.$refs.audio.currentTime=this.$refs.audio.duration*time;    //总时长*元素当前进度=点击进度条后已播放时长
             }
         },
 
@@ -213,12 +227,11 @@
             dateTime(val){
                 let hour=Math.floor(val/3600)+'';
                 let min=Math.floor(val/60)%60+'';
-                let second =val%60;
-                let seconds=Math.round(second)+'';
-                if(min>60){
-                    return `${hour.padStart(2,'0')}:${min.padStart(2,'0')}:${seconds.padStart(2,'0')}`
+                let second =Math.floor(val%60)+'';
+                if(min>=60){
+                    return `${hour.padStart(2,'0')}:${min.padStart(2,'0')}:${second.padStart(2,'0')}`
                 }else {
-                    return `00:${min.padStart(2,'0')}:${seconds.padStart(2,'0')}`
+                    return `00:${min.padStart(2,'0')}:${second.padStart(2,'0')}`
                 }
             }
         }
