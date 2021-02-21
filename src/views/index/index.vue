@@ -175,16 +175,14 @@
                 clearInterval(this.overTime)
                 let round=this.$refs.yuandian;
                 let progressWidth=this.$refs.track.offsetWidth // 进度条宽度
-                let offsetWidth=round.offsetWidth; //圆点宽度
-                let justWidth=progressWidth-offsetWidth //进度条剩余宽度
                 let pageX=this.$refs.track.getBoundingClientRect().left //得到进度条离屏幕的宽度
 
                 round.ontouchmove=(e)=>{  //元素移动
                     e.preventDefault(); //阻止元素默认行为
                     let moveX=e.touches[0].pageX; //当前元素的X轴
-                    let leftX=((moveX-pageX)/justWidth.toFixed(2)) //得到当前进度条百分比
-                    this.nowTime=this.$refs.audio.duration*leftX  //赋值经过时间
-                    if((moveX-pageX)>=justWidth){              //判断是否超过进度条
+                    let leftX=(moveX-pageX)/progressWidth.toFixed(2) //得到当前经过时长百分比
+                    this.nowTime=this.$refs.audio.duration*leftX  //赋值当前已播放时长
+                    if((moveX-pageX)>=progressWidth){              //判断是否超过进度条
                         leftX=1
                         this.nowTime=this.$refs.audio.duration
                     }
@@ -216,7 +214,7 @@
                 }
                 let progressWidth=this.$refs.track.offsetWidth; //进度条宽度
                 let clickX = e.offsetX;     //当前点击的位置相对于触发事件对象的X坐标
-                let time=(clickX / progressWidth).toFixed(2);   //当前进度
+                let time=clickX / progressWidth.toFixed(2);   //当前进度
                 this.$refs.audio.currentTime=this.$refs.audio.duration*time;    //总时长*元素当前进度=点击进度条后已播放时长
             }
         },
